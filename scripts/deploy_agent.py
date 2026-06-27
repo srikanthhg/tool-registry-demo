@@ -4,7 +4,10 @@ import os
 import mlflow
 from databricks.sdk import WorkspaceClient
 from mlflow.models import infer_signature
-
+from databricks.sdk.service.serving import (
+    ServedModelInput,
+    EndpointCoreConfigInput
+)
 
 def main():
     catalog = os.getenv("UC_CATALOG", "demo")
@@ -67,12 +70,16 @@ def main():
 
     print(f"🚀 Deploying endpoint: {endpoint_name}")
 
-    served_model = {
-        "model_name": model_name,
-        "model_version": version,
-        "workload_size": "Small",
-        "scale_to_zero_enabled": True
-    }
+    served_model = ServedModelInput(
+        model_name=model_name,
+        model_version=version,
+        workload_size="Small",
+        scale_to_zero_enabled=True
+    )
+
+    config = EndpointCoreConfigInput(
+        served_models=[served_model]
+    )
 
     existing = [e.name for e in client.serving_endpoints.list()]
 
@@ -86,9 +93,7 @@ def main():
         print("🆕 Creating endpoint...")
         client.serving_endpoints.create(
             name=endpoint_name,
-            config={
-                "served_models": [served_model]
-            }
+            config=config
         )
 
     print("🎉 DONE")
