@@ -62,14 +62,19 @@ def main():
 
     # List of tools to register
     tools_to_register = [
-        get_weather,
-        get_post,
-        get_current_datetime
+        # get_weather,
+        # get_post,
+        # get_current_datetime
+        {"func": get_weather, "deps": ["requests"]},
+        {"func": get_post, "deps": ["requests"]},
+        {"func": get_current_datetime, "deps": ["pytz"]},
     ]
 
     # Register each tool
     for tool in tools_to_register:
-        print(f"--- Registering {tool.__name__} ---")
+        tool = config["func"]
+        deps = config["deps"]
+        print(f"--- Registering {tool.__name__} with dependencies: {deps} ---")
         try:
             function_info = uc_client.create_python_function(
                 func=tool,
