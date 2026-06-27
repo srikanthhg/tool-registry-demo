@@ -3,8 +3,7 @@
 import os
 import mlflow
 from databricks.sdk import WorkspaceClient
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.agents import create_tool_calling_agent, AgentExecutor
+from langgraph.prebuilt import create_react_agent
 from databricks_langchain import ChatDatabricks, UCFunctionToolkit
 
 def main():
@@ -26,14 +25,8 @@ def main():
     tools = toolkit.tools
     llm = ChatDatabricks(model="databricks-gpt-oss-20b")
     
-    # 2. Setup Prompt & Agent
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful assistant with access to real-time tools."),
-        ("human", "{input}"),
-        MessagesPlaceholder(variable_name="agent_scratchpad"),
-    ])
-    agent = create_tool_calling_agent(llm, tools, prompt)
-    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=False)
+    # 2. Create Agent using LangGraph (Modern approach)
+    agent = create_react_agent(llm, tools)
     
     # 3. Log to MLflow
     print("📦 Logging agent to MLflow...")
@@ -41,9 +34,9 @@ def main():
     
     with mlflow.start_run():
         model_info = mlflow.langchain.log_model(
-            lc_model=agent_executor,
+            lc_model=agent,
             artifact_path="model",
-            input_example={"input": "What is the weather in Bangalore?"},
+            input_example={"messages": [{"role": "user", "content": "What is the weather in Bangalore?"}]},
             registered_model_name=model_name
         )
         
@@ -77,7 +70,7 @@ def main():
         )
         
     print("🎉 Agent deployed successfully!")
-    print("🔗 Go to Playground -> Select 'ai-tools-agent' from the dropdown to chat (no manual tool setup needed!).")
+    print("🔗 Go to Playground -> Select 'ai-tools-agent' from the Model Serving Endpoints dropdown.")
 
 if __name__ == "__main__":
     main()
