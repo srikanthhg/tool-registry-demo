@@ -4,7 +4,6 @@ import os
 import mlflow
 from databricks.sdk import WorkspaceClient
 from mlflow.models import infer_signature
-from databricks_langchain import ChatDatabricks
 
 
 def main():
@@ -23,33 +22,20 @@ def main():
     print(f"🔧 UC Tools: {tool_names}")
 
     # ----------------------------
-    # LLM (Databricks model)
-    # ----------------------------
-    llm = ChatDatabricks(model="databricks-gpt-oss-20b")
-
-    # ----------------------------
-    # MLflow PyFunc Model
+    # MLflow Model (simple PyFunc)
     # ----------------------------
     class DatabricksAgent(mlflow.pyfunc.PythonModel):
         def predict(self, context, model_input: dict) -> dict:
-            messages = model_input.get("messages", [])
-            user_input = messages[-1]["content"] if messages else ""
-
-            response = llm.invoke(user_input)
-
+            user_input = model_input.get("input", "")
             return {
-                "response": response,
+                "response": f"You asked: {user_input}",
                 "tools_available": tool_names
             }
 
     # ----------------------------
-    # MLflow Signature (REQUIRED for UC)
+    # MLflow Signature (REQUIRED)
     # ----------------------------
-    input_example = {
-        "messages": [
-            {"role": "user", "content": "What is the weather in Bangalore?"}
-        ]
-    }
+    input_example = {"input": "What is the weather in Bangalore?"}
 
     output_example = {
         "response": "sample response",
@@ -60,7 +46,7 @@ def main():
 
     mlflow.set_registry_uri("databricks-uc")
 
-    print("📦 Logging model to MLflow...")
+    print("📦 Logging MLflow model...")
 
     with mlflow.start_run():
         result = mlflow.pyfunc.log_model(
@@ -75,25 +61,35 @@ def main():
     print(f"✅ Registered model: {model_name} v{version}")
 
     # ----------------------------
-    # Deploy to Serving Endpoint
+    # Serving Endpoint (FIXED API)
     # ----------------------------
     client = WorkspaceClient()
 
     print(f"🚀 Deploying endpoint: {endpoint_name}")
 
-    client.serving_endpoints.create_or_update(
-        name=endpoint_name,
-        config={
-            "served_models": [
-                {
-                    "model_name": model_name,
-                    "model_version": version,
-                    "workload_size": "Small",
-                    "scale_to_zero_enabled": True
-                }
-            ]
-        }
-    )
+    served_model = {
+        "model_name": model_name,
+        "model_version": version,
+        "workload_size": "Small",
+        "scale_to_zero_enabled": True
+    }
+
+    existing = [e.name for e in client.serving_endpoints.list()]
+
+    if endpoint_name in existing:
+        print("🔄 Updating endpoint...")
+        client.serving_endpoints.update_config(
+            name=endpoint_name,
+            served_models=[served_model]
+        )
+    else:
+        print("🆕 Creating endpoint...")
+        client.serving_endpoints.create(
+            name=endpoint_name,
+            config={
+                "served_models": [served_model]
+            }
+        )
 
     print("🎉 DONE")
     print(f"👉 Open Databricks Playground → {endpoint_name}")
