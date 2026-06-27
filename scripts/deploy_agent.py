@@ -1,31 +1,74 @@
-# scripts/agent_code.py
-# This file defines the agent logic. MLflow will execute this code to load the model.
+import os
+import mlflow
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.serving import ServedModelInput, EndpointCoreConfigInput
 
-from databricks_langchain import ChatDatabricks, UCFunctionToolkit
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.agents import create_tool_calling_agent, AgentExecutor
+def main():
+    catalog = os.getenv("UC_CATALOG", "demo")
+    schema = os.getenv("UC_SCHEMA", "tools")
+    endpoint_name = os.getenv("AGENT_ENDPOINT", "ai-tools-agent")
+    model_name = f"{catalog}.{schema}.tools_agent"
 
-# 1. Setup Tools
-tool_names = [
-    "demo.tools.get_weather",
-    "demo.tools.get_post",
-    "demo.tools.get_current_datetime"
-]
-toolkit = UCFunctionToolkit(function_names=tool_names)
-tools = toolkit.tools
+    print(f"🔧 UC Tools will be loaded from scripts/agent_code.py")
 
-# 2. Setup LLM
-llm = ChatDatabricks(model="databricks-meta-llama-3-3-70b-instruct")
+    # ----------------------------
+    # 1. Log to MLflow using "Models from Code"
+    # ----------------------------
+    mlflow.set_registry_uri("databricks-uc")
+    print("📦 Logging agent code to MLflow...")
 
-# 3. Setup Prompt
-prompt = ChatPromptTemplate.from_messages([
-    ("system", "You are a helpful assistant with access to real-time tools. Use them when needed."),
-    ("human", "{input}"),
-    MessagesPlaceholder(variable_name="agent_scratchpad"),
-])
+    with mlflow.start_run():
+        # We pass the path to the python file as 'lc_model'
+        result = mlflow.langchain.log_model(
+            lc_model="scripts/agent_code.py", 
+            artifact_path="agent",
+            registered_model_name=model_name,
+            pip_requirements=[
+                "langchain==0.3.14",
+                "langchain-core==0.3.29",
+                "langgraph==0.2.62",
+                "databricks-langchain==0.6.0"
+            ]
+        )
 
-# 4. Create Agent
-agent = create_tool_calling_agent(llm, tools, prompt)
+    version = result.registered_model_version
+    print(f"✅ Registered real agent: {model_name} v{version}")
 
-# 5. Assign to 'model' variable (Required by MLflow Models from Code)
-model = AgentExecutor(agent=agent, tools=tools, verbose=False)
+    # ----------------------------
+    # 2. Deploy to Serving Endpoint
+    # ----------------------------
+    client = WorkspaceClient()
+    print(f"🚀 Deploying endpoint: {endpoint_name}")
+
+    served_model = ServedModelInput(
+        model_name=model_name,
+        model_version=version,
+        workload_size="Small",
+        scale_to_zero_enabled=True
+    )
+
+    config = EndpointCoreConfigInput(
+        name=endpoint_name,
+        served_models=[served_model]
+    )
+
+    existing = [e.name for e in client.serving_endpoints.list()]
+
+    if endpoint_name in existing:
+        print("🔄 Updating endpoint...")
+        client.serving_endpoints.update_config(
+            name=endpoint_name,
+            served_models=[served_model]
+        )
+    else:
+        print("🆕 Creating endpoint...")
+        client.serving_endpoints.create(
+            name=endpoint_name,
+            config=config
+        )
+
+    print("🎉 DONE. Your agent will now actually call the tools!")
+    print(f"👉 Open Databricks Playground → Select '{endpoint_name}' from the Model Serving Endpoints dropdown.")
+
+if __name__ == "__main__":
+    main()
