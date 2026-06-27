@@ -1,9 +1,8 @@
 from databricks.sdk import WorkspaceClient
+from unitycatalog.ai.core.databricks import DatabricksFunctionClient
 
-w = WorkspaceClient()
+from tools.weather_tool import get_weather
 
-print("Connected Successfully")
+workspace_client = WorkspaceClient()
 
-print("Current User:")
-
-print(w.current_user.me())
+client = DatabricksFunctionClient(workspace_client)

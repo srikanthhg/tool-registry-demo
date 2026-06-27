@@ -28,9 +28,7 @@ jobs:
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-
-          # UC_CATALOG: ${{ secrets.UC_CATALOG }}
-
-          # UC_SCHEMA: ${{ secrets.UC_SCHEMA }}
+          UC_CATALOG: ${{ secrets.UC_CATALOG }}
+          UC_SCHEMA: ${{ secrets.UC_SCHEMA }}
 
         run: python scripts/register_tools.py
