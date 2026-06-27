@@ -1,3 +1,5 @@
+%pip install unitycatalog-ai databricks-sdk
+
 from databricks.sdk import WorkspaceClient
 from unitycatalog.ai.core.databricks import DatabricksFunctionClient
 
