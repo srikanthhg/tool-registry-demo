@@ -7,6 +7,7 @@ unitycatalog-ai
 ruff
 pytz
 langchain==0.2.16
-databricks-langchain
-mlflow
-langgraph
+databricks-langchain==0.6.0
+mlflow>=2.18.0
+langgraph==0.2.62
+langchain-core==0.3.29
