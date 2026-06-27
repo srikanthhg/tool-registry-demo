@@ -1,41 +1,38 @@
 # databricks-gpt-oss-20b
 import os
+from databricks import agents
+from databricks.sdk import WorkspaceClient
 
 def main():
+    client = WorkspaceClient()
+    
     catalog = os.getenv("UC_CATALOG", "demo")
     schema = os.getenv("UC_SCHEMA", "tools")
     endpoint_name = os.getenv("AGENT_ENDPOINT", "ai-tools-agent")
     
-    # Create the agent configuration
-    agent_config = {
-        "model_serving_endpoint_config": {
-            "name": endpoint_name,
-            "config": {
-                "served_models": [{
-                    "model_name": "databricks-meta-llama-3-3-70b-instruct",
-                    "workload_size": "Small",
-                    "scale_to_zero_enabled": True
-                }]
-            }
-        },
-        "agent_config": {
-            "functions": [
-                {"function_name": f"{catalog}.{schema}.get_weather"},
-                {"function_name": f"{catalog}.{schema}.get_post"},
-                {"function_name": f"{catalog}.{schema}.get_current_datetime"}
-            ]
-        }
-    }
+    tool_names = [
+        f"{catalog}.{schema}.get_weather",
+        f"{catalog}.{schema}.get_post",
+        f"{catalog}.{schema}.get_current_datetime"
+    ]
     
-    # Note: Direct agent creation via SDK might require specific permissions
-    # The simplest approach is often to use the Databricks UI for initial setup
-    # then manage via code
+    print(f"🔧 Creating agent with tools: {tool_names}")
     
-    print("✅ Agent configuration prepared!")
-    print(f"📍 Manual deployment required for endpoint: {endpoint_name}")
-    print("🔗 Use Databricks UI to create agent with these functions")
-    print("🔧 Agent config:")
-    print(agent_config)
+    # Create UC Function Toolkit
+    toolkit = agents.UCFunctionToolkit(function_names=tool_names)
+    
+    print(f"🚀 Deploying agent to endpoint: {endpoint_name}")
+    
+    # Deploy using the correct API
+    deployment = agents.deploy(
+        model_name="databricks-meta-llama-3-3-70b-instruct",
+        endpoint_name=endpoint_name,
+        tools=toolkit.tools
+    )
+    
+    print("✅ Agent deployed successfully!")
+    print(f"📍 Endpoint: {endpoint_name}")
+    print(f"🔗 Deployment details: {deployment}")
 
 
 if __name__ == "__main__":
