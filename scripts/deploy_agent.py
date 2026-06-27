@@ -78,6 +78,7 @@ def main():
     )
 
     config = EndpointCoreConfigInput(
+        name=endpoint_name,
         served_models=[served_model]
     )
 
