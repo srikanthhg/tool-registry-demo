@@ -3,6 +3,7 @@
 import os
 import mlflow
 from databricks.sdk import WorkspaceClient
+from mlflow.models import infer_signature
 from databricks_langchain import ChatDatabricks
 
 
@@ -21,16 +22,17 @@ def main():
 
     print(f"🔧 UC Tools: {tool_names}")
 
+    # ----------------------------
+    # LLM (Databricks model)
+    # ----------------------------
     llm = ChatDatabricks(model="databricks-gpt-oss-20b")
 
-    # -------------------------------------------------------
-    # Production-safe MLflow PyFunc wrapper
-    # -------------------------------------------------------
+    # ----------------------------
+    # MLflow PyFunc Model
+    # ----------------------------
     class DatabricksAgent(mlflow.pyfunc.PythonModel):
-        def predict(self, context, model_input):
+        def predict(self, context, model_input: dict) -> dict:
             messages = model_input.get("messages", [])
-
-            # Extract last user message
             user_input = messages[-1]["content"] if messages else ""
 
             response = llm.invoke(user_input)
@@ -40,26 +42,44 @@ def main():
                 "tools_available": tool_names
             }
 
+    # ----------------------------
+    # MLflow Signature (REQUIRED for UC)
+    # ----------------------------
+    input_example = {
+        "messages": [
+            {"role": "user", "content": "What is the weather in Bangalore?"}
+        ]
+    }
+
+    output_example = {
+        "response": "sample response",
+        "tools_available": tool_names
+    }
+
+    signature = infer_signature(input_example, output_example)
+
     mlflow.set_registry_uri("databricks-uc")
 
-    print("📦 Logging model...")
+    print("📦 Logging model to MLflow...")
 
     with mlflow.start_run():
         result = mlflow.pyfunc.log_model(
             artifact_path="agent",
             python_model=DatabricksAgent(),
-            registered_model_name=model_name
+            registered_model_name=model_name,
+            input_example=input_example,
+            signature=signature
         )
 
     version = result.registered_model_version
-    print(f"✅ Registered: {model_name} v{version}")
+    print(f"✅ Registered model: {model_name} v{version}")
 
-    # -------------------------------------------------------
-    # Deploy endpoint
-    # -------------------------------------------------------
+    # ----------------------------
+    # Deploy to Serving Endpoint
+    # ----------------------------
     client = WorkspaceClient()
 
-    print(f"🚀 Deploying: {endpoint_name}")
+    print(f"🚀 Deploying endpoint: {endpoint_name}")
 
     client.serving_endpoints.create_or_update(
         name=endpoint_name,
@@ -76,7 +96,7 @@ def main():
     )
 
     print("🎉 DONE")
-    print(f"👉 Open Playground → {endpoint_name}")
+    print(f"👉 Open Databricks Playground → {endpoint_name}")
 
 
 if __name__ == "__main__":
