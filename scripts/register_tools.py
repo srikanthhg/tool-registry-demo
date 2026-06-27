@@ -55,14 +55,13 @@ def main():
     schema = os.getenv("UC_SCHEMA", "tools")
 
     tools_to_register = [
-        {"func": get_weather, "deps": ["requests"]},
-        {"func": get_post, "deps": ["requests"]},
-        {"func": get_current_datetime, "deps": ["pytz"]},
+        {"func": get_weather},
+        {"func": get_post},
+        {"func": get_current_datetime},
     ]
 
     for tool_config in tools_to_register:
         func = tool_config["func"]
-        deps = tool_config["deps"]
         full_name = f"{catalog}.{schema}.{func.__name__}"
         
         print(f"--- Processing {func.__name__} ---")
@@ -82,7 +81,7 @@ def main():
                 func=func,
                 catalog=catalog,
                 schema=schema,
-                dependencies=deps
+                replace=True
             )
             print(f"✅ Successfully registered: {function_info.full_name}\n")
         except Exception as e:
