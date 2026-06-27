@@ -38,46 +38,50 @@
 import os
 import sys
 
-# Add the project root to Python path
 sys.path.append(os.getcwd())
 
 from databricks.sdk import WorkspaceClient
 from unitycatalog.ai.core.databricks import DatabricksFunctionClient
 
-# Import all your tools
 from tools.weather_tool import get_weather
 from tools.rest_api_tool import get_post
 from tools.datetime_tool import get_current_datetime
 
 def main():
-    # Connect to Databricks
     workspace_client = WorkspaceClient()
-    
-    # Create UC Function client
     uc_client = DatabricksFunctionClient(workspace_client)
 
-    # Get catalog and schema from environment variables (set by GitHub Actions)
     catalog = os.getenv("UC_CATALOG", "demo")
     schema = os.getenv("UC_SCHEMA", "tools")
 
-    # List of tools to register
     tools_to_register = [
         {"func": get_weather, "deps": ["requests"]},
         {"func": get_post, "deps": ["requests"]},
         {"func": get_current_datetime, "deps": ["pytz"]},
     ]
 
-    # Register each tool
     for tool_config in tools_to_register:
         func = tool_config["func"]
         deps = tool_config["deps"]
-        print(f"--- Registering {func.__name__} with dependencies: {deps} ---")
+        full_name = f"{catalog}.{schema}.{func.__name__}"
+        
+        print(f"--- Processing {func.__name__} ---")
+        
+        # Step 1: Try to drop the existing function first
         try:
+            print(f"🗑️  Dropping existing function {full_name}...")
+            uc_client.delete_function(full_name)
+            print(f"✅ Dropped {full_name}")
+        except Exception as e:
+            print(f"ℹ️  Function {full_name} doesn't exist or already dropped: {e}")
+        
+        # Step 2: Create the function with dependencies
+        try:
+            print(f"📦 Creating {func.__name__} with dependencies: {deps}...")
             function_info = uc_client.create_python_function(
                 func=func,
                 catalog=catalog,
                 schema=schema,
-                replace=True,
                 dependencies=deps
             )
             print(f"✅ Successfully registered: {function_info.full_name}\n")
@@ -85,7 +89,7 @@ def main():
             print(f"❌ Failed to register {func.__name__}: {e}\n")
             raise e
 
-    print("🎉 All tools registered successfully!")
+    print("🎉 All tools registered successfully with dependencies!")
 
 
 if __name__ == "__main__":
