@@ -1,7 +1,7 @@
 import requests
 import json
 
-def get_weather(city: str):
+def get_weather(city: str) -> str:
     """
     Returns weather information from wttr.in
     """
@@ -12,7 +12,6 @@ def get_weather(city: str):
     response.raise_for_status()
 
     return json.dumps(response.json())
-
 
 """
 This is a normal Python function.
