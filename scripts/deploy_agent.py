@@ -1,11 +1,8 @@
 # databricks-gpt-oss-20b
 import os
 from databricks import agents
-from databricks.sdk import WorkspaceClient
 
 def main():
-    client = WorkspaceClient()
-    
     catalog = os.getenv("UC_CATALOG", "demo")
     schema = os.getenv("UC_SCHEMA", "tools")
     endpoint_name = os.getenv("AGENT_ENDPOINT", "ai-tools-agent")
