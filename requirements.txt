@@ -2,5 +2,6 @@ requests
 pytest
 databricks-sdk
 databricks-agents
+databricks-connect>=15.1.0
 unitycatalog-ai
 ruff
