@@ -63,7 +63,7 @@ def main():
     # List of tools to register
     tools_to_register = [
         get_weather,
-        # get_post,
+        get_post,
         get_current_datetime
     ]
 
