@@ -3,8 +3,7 @@
 import os
 import mlflow
 from databricks.sdk import WorkspaceClient
-
-from databricks_langchain import ChatDatabricks, UCFunctionToolkit
+from databricks_langchain import ChatDatabricks
 
 
 def main():
@@ -20,56 +19,47 @@ def main():
         f"{catalog}.{schema}.get_current_datetime"
     ]
 
-    print(f"🔧 Registering UC tools: {tool_names}")
+    print(f"🔧 UC Tools: {tool_names}")
 
-    # -------------------------------------------------------
-    # 1. UC Tools (Databricks-native tool binding)
-    # -------------------------------------------------------
-    toolkit = UCFunctionToolkit(function_names=tool_names)
-
-    # -------------------------------------------------------
-    # 2. LLM (Databricks Foundation Model)
-    # -------------------------------------------------------
     llm = ChatDatabricks(model="databricks-gpt-oss-20b")
 
     # -------------------------------------------------------
-    # 3. Databricks Agent (NO LangChain, NO LangGraph)
+    # Production-safe MLflow PyFunc wrapper
     # -------------------------------------------------------
-    from databricks.agents import Agent
+    class DatabricksAgent(mlflow.pyfunc.PythonModel):
+        def predict(self, context, model_input):
+            messages = model_input.get("messages", [])
 
-    agent = Agent(
-        name=model_name,
-        model=llm,
-        tools=toolkit.tools,
-        instructions=(
-            "You are a helpful assistant. "
-            "Use available tools when needed to answer user questions."
-        )
-    )
+            # Extract last user message
+            user_input = messages[-1]["content"] if messages else ""
 
-    # -------------------------------------------------------
-    # 4. MLflow logging (Databricks Agents flavor)
-    # -------------------------------------------------------
+            response = llm.invoke(user_input)
+
+            return {
+                "response": response,
+                "tools_available": tool_names
+            }
+
     mlflow.set_registry_uri("databricks-uc")
 
-    print("📦 Logging Databricks Agent to MLflow...")
+    print("📦 Logging model...")
 
     with mlflow.start_run():
         result = mlflow.pyfunc.log_model(
             artifact_path="agent",
-            python_model=agent,
+            python_model=DatabricksAgent(),
             registered_model_name=model_name
         )
 
     version = result.registered_model_version
-    print(f"✅ Registered model: {model_name} v{version}")
+    print(f"✅ Registered: {model_name} v{version}")
 
     # -------------------------------------------------------
-    # 5. Deploy to Serving Endpoint
+    # Deploy endpoint
     # -------------------------------------------------------
     client = WorkspaceClient()
 
-    print(f"🚀 Deploying endpoint: {endpoint_name}")
+    print(f"🚀 Deploying: {endpoint_name}")
 
     client.serving_endpoints.create_or_update(
         name=endpoint_name,
@@ -85,8 +75,8 @@ def main():
         }
     )
 
-    print("🎉 Deployment complete!")
-    print(f"👉 Open Databricks Playground → select: {endpoint_name}")
+    print("🎉 DONE")
+    print(f"👉 Open Playground → {endpoint_name}")
 
 
 if __name__ == "__main__":
