@@ -14,26 +14,24 @@ def main():
     
     print(f"🔧 Creating agent with tools: {tool_names}")
     
-    # Create the agent with Unity Catalog tools
-    agent = agents.Agent(
-        model="databricks-gpt-oss-20b",
-        tools=[
-            agents.UCFunctionToolkit(function_name=tool) 
-            for tool in tool_names
-        ]
+    # Create UC Function Toolkit (correct way)
+    toolkit = agents.UCFunctionToolkit(
+        function_names=tool_names
     )
     
-    # Deploy as a Model Serving endpoint
+    # Create and deploy the agent
     endpoint_name = os.getenv("AGENT_ENDPOINT", "ai-tools-agent")
     
     print(f"🚀 Deploying agent to endpoint: {endpoint_name}")
     
-    agent.deploy(
+    # Deploy the agent with the toolkit
+    deployment = agents.deploy(
+        model="databricks-gpt-oss-20b",
+        tools=toolkit.tools,
         endpoint_name=endpoint_name,
         tags={"team": "devops", "environment": "production"}
     )
     
-    # Fixed: Removed unused 'client' variable and unnecessary 'f' prefixes
     print("✅ Agent deployed successfully!")
     print(f"📍 Endpoint: {endpoint_name}")
     print("🔗 You can now query it via API or Databricks Playground")
