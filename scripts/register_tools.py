@@ -72,9 +72,9 @@ def main():
 
     # Register each tool
     for tool in tools_to_register:
-        tool = config["func"]
-        deps = config["deps"]
-        print("--- Registering {tool.__name__} with dependencies: {deps} ---")
+        tool = tool["func"]
+        deps = tool["deps"]
+        print(f"--- Registering {tool.__name__} with dependencies: {deps} ---")
         try:
             function_info = uc_client.create_python_function(
                 func=tool,
@@ -82,9 +82,9 @@ def main():
                 schema=schema,
                 replace=True
             )
-            print("✅ Successfully registered: {function_info.full_name}\n")
+            print(f"✅ Successfully registered: {function_info.full_name}\n")
         except Exception as e:
-            print("❌ Failed to register {tool.__name__}: {e}\n")
+            print(f"❌ Failed to register {tool.__name__}: {e}\n")
             raise e
 
     print("🎉 All tools registered successfully!")
