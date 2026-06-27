@@ -1,6 +1,7 @@
 # scripts/agent_code.py
 # This file defines the agent logic. MLflow will execute this code to load the model.
 
+import mlflow
 from databricks_langchain import ChatDatabricks, UCFunctionToolkit
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.agents import create_tool_calling_agent, AgentExecutor
@@ -27,5 +28,8 @@ prompt = ChatPromptTemplate.from_messages([
 # 4. Create Agent
 agent = create_tool_calling_agent(llm, tools, prompt)
 
-# 5. Assign to 'model' variable (Required by MLflow Models from Code)
+# 5. Create AgentExecutor
 model = AgentExecutor(agent=agent, tools=tools, verbose=False)
+
+# 6. CRITICAL: Tell MLflow this is the model
+mlflow.models.set_model(model)
