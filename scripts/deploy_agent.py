@@ -9,7 +9,7 @@ def main():
     endpoint_name = os.getenv("AGENT_ENDPOINT", "ai-tools-agent")
     model_name = f"{catalog}.{schema}.tools_agent"
 
-    print("🔧 UC Tools will be loaded from scripts/agent_code.py")
+    print(f"🔧 UC Tools will be loaded from scripts/agent_code.py")
 
     # ----------------------------
     # 1. Log to MLflow using "Models from Code"
@@ -23,6 +23,8 @@ def main():
             lc_model="scripts/agent_code.py", 
             artifact_path="agent",
             registered_model_name=model_name,
+            # CRITICAL FIX: Provide an input example so MLflow can infer the schema
+            input_example={"input": "What is the weather in Bangalore?"},
             pip_requirements=[
                 "langchain==0.3.14",
                 "langchain-core==0.3.29",
