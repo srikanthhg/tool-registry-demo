@@ -1,10 +1,7 @@
 # databricks-gpt-oss-20b
 import os
-from databricks.sdk import WorkspaceClient
 
 def main():
-    client = WorkspaceClient()
-    
     catalog = os.getenv("UC_CATALOG", "demo")
     schema = os.getenv("UC_SCHEMA", "tools")
     endpoint_name = os.getenv("AGENT_ENDPOINT", "ai-tools-agent")
@@ -37,6 +34,8 @@ def main():
     print("✅ Agent configuration prepared!")
     print(f"📍 Manual deployment required for endpoint: {endpoint_name}")
     print("🔗 Use Databricks UI to create agent with these functions")
+    print("🔧 Agent config:")
+    print(agent_config)
 
 
 if __name__ == "__main__":
