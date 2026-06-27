@@ -30,6 +30,13 @@ def main():
     class DatabricksAgent(mlflow.pyfunc.PythonModel):
         def predict(self, context, model_input: dict) -> dict:
             user_input = model_input.get("input", "")
+
+            try:
+                user_input = user_input.iloc[0]
+            except Exception:
+                pass
+
+            user_input = str(user_input)
             return {
                 "response": f"You asked: {user_input}",
                 "tools_available": tool_names
