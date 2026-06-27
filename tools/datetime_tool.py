@@ -1,13 +1,13 @@
 from datetime import datetime
 import pytz
 
-def get_current_datetime(timezone: str = "UTC") -> str:
+def get_current_datetime(timezone: str) -> str:
     """
     Retrieves the current date and time in the specified timezone.
     
     Args:
         timezone (str): The timezone name (e.g., 'UTC', 'America/New_York', 
-                        'Asia/Tokyo', 'Europe/London'). Defaults to 'UTC'.
+                        'Asia/Tokyo', 'Europe/London').
         
     Returns:
         str: Current date and time in ISO 8601 format with timezone info.
