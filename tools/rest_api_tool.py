@@ -1,5 +1,4 @@
-import requests
-import json
+
 
 def get_post(post_id: int) -> str:
     """
@@ -11,6 +10,9 @@ def get_post(post_id: int) -> str:
     Returns:
         str: A JSON-formatted string containing the post's userId, id, title, and body.
     """
+    import requests
+    import json
+
     url = f"https://jsonplaceholder.typicode.com/posts/{post_id}"
     response = requests.get(url, timeout=10)
     response.raise_for_status()
