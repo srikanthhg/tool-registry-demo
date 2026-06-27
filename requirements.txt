@@ -9,3 +9,4 @@ pytz
 langchain==0.2.16
 databricks-langchain
 mlflow
+langgraph
