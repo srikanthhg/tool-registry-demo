@@ -1,5 +1,5 @@
 import requests
-
+import json
 
 def get_weather(city: str):
     """
@@ -11,7 +11,7 @@ def get_weather(city: str):
     response = requests.get(url, timeout=20)
     response.raise_for_status()
 
-    return response.json()
+    return json.dumps(response.json())
 
 
 """

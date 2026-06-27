@@ -1,32 +1,35 @@
 # %pip install unitycatalog-ai databricks-sdk
 
-import sys
 import os
+import sys
 
-# Ensure "tools" folder is importable
-sys.path.append(os.path.dirname(__file__))
-
-from tools.weather_tool import get_weather
+# Add the project root to Python path
+sys.path.append(os.getcwd())
 
 from databricks.sdk import WorkspaceClient
 from unitycatalog.ai.core.databricks import DatabricksFunctionClient
 
+from tools.weather_tool import get_weather
+
 
 def main():
 
-    # Step 1: Create Databricks clients
-    w = WorkspaceClient()
-    client = DatabricksFunctionClient(w)
+    # Connect to Databricks
+    workspace_client = WorkspaceClient()
 
-    # Step 2: Register function into Unity Catalog
-    client.create_python_function(
+    # Create UC Function client
+    uc_client = DatabricksFunctionClient(workspace_client)
+
+    # Register the Python function
+    function_info = uc_client.create_python_function(
         func=get_weather,
         catalog="demo",
         schema="tools",
-        name="get_weather"
+        replace=True
     )
 
-    print("✅ Function registered successfully in Unity Catalog")
+    print("Registration Successful")
+    print(function_info)
 
 
 if __name__ == "__main__":
