@@ -1,0 +1,6 @@
+requests
+pytest
+databricks-sdk
+databricks-agents
+unitycatalog-ai
+ruff

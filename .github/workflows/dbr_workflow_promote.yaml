@@ -1,0 +1,67 @@
+name: 'Promote Workflow'
+run-name: 'Promote Workflow ${{ inputs.environment }} by @${{ github.actor }}'
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to promote to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+          - development
+      project_name:
+        description: 'Project name'
+        required: true
+        default: 'my_project'
+        type: string
+      workflow_file_name:
+        description: 'Workflow name to promote'
+        required: true
+      dbr_region:
+        description: 'Databricks region'
+        required: true
+        type: choice
+        options:
+          - east-us
+          - west-eu
+
+permissions:
+    id-token: write
+    contents: read
+
+jobs:
+    promote:
+        name: update/create the workflowi in ${{ inputs.environment }}
+        if: inputs.environment == 'DEV'
+        runs-on: ubuntu-latest
+        environment: NONPROD
+        env:
+            HOST: https://adb-sdffdffs.18.azuredatabricks.net
+            TOKEN: ${{ secrets.DBR_TOKEN }}
+            API_VERSION: 2.1
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6
+
+            - name: Setup Python
+              uses: actions/setup-python@v4
+              with:
+                  python-version: '3.11'
+            - name: Install dependencies
+              run: |
+                  pip install pandas
+                  pip install databricks-cli
+                  pip install snoop
+                  pip install pyyaml
+                  pip install retrying
+            - name: workflow code execution ${{ inputs.environment }}
+              env:
+                  ENVIRONMENT: ${{ inputs.environment }}
+                  PROJECT_NAME: ${{ inputs.project_name }}
+                  WORKFLOW_FILE_NAME: ${{ inputs.workflow_file_name }}
+                  DBR_REGION: ${{ inputs.dbr_region }}
+              run: |
+                python3 deploy/src/databricks_workflow.py "$ENVIRONMENT" "$PROJECT_NAME" "$WORKFLOW_FILE_NAME" "$DBR_REGION"

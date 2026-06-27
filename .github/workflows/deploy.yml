@@ -1,0 +1,36 @@
+name: Register Tool
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt
+
+      - run: pytest
+
+      - run: ruff check .
+
+      - name: Register Tools
+
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+          # UC_CATALOG: ${{ secrets.UC_CATALOG }}
+
+          # UC_SCHEMA: ${{ secrets.UC_SCHEMA }}
+
+        run: python scripts/register_tools.py
