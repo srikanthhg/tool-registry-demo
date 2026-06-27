@@ -1,11 +1,7 @@
 import os
 from databricks import agents
-from databricks.sdk import WorkspaceClient
 
 def main():
-    # Connect to Databricks
-    client = WorkspaceClient()
-    
     # Your tool function names in Unity Catalog
     catalog = os.getenv("UC_CATALOG", "demo")
     schema = os.getenv("UC_SCHEMA", "tools")
@@ -37,9 +33,10 @@ def main():
         tags={"team": "devops", "environment": "production"}
     )
     
-    print(f"✅ Agent deployed successfully!")
+    # Fixed: Removed unused 'client' variable and unnecessary 'f' prefixes
+    print("✅ Agent deployed successfully!")
     print(f"📍 Endpoint: {endpoint_name}")
-    print(f"🔗 You can now query it via API or Databricks Playground")
+    print("🔗 You can now query it via API or Databricks Playground")
 
 
 if __name__ == "__main__":
