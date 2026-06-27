@@ -76,7 +76,7 @@ def main():
         
         # Step 2: Create the function with dependencies
         try:
-            print(f"📦 Creating {func.__name__} with dependencies: {deps}...")
+            print(f"📦 Creating {func.__name__} ...")
             function_info = uc_client.create_python_function(
                 func=func,
                 catalog=catalog,
