@@ -25,7 +25,7 @@ def main():
     print(f"🚀 Deploying agent to endpoint: {endpoint_name}")
     
     # Deploy the agent with the toolkit
-    deployment = agents.deploy(
+    agents.deploy(
         model="databricks-gpt-oss-20b",
         tools=toolkit.tools,
         endpoint_name=endpoint_name,
