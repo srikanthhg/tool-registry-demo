@@ -1,40 +1,42 @@
+# databricks-gpt-oss-20b
 import os
-from databricks import agents
+from databricks.sdk import WorkspaceClient
 
 def main():
-    # Your tool function names in Unity Catalog
+    client = WorkspaceClient()
+    
     catalog = os.getenv("UC_CATALOG", "demo")
     schema = os.getenv("UC_SCHEMA", "tools")
-    
-    tool_names = [
-        f"{catalog}.{schema}.get_weather",
-        f"{catalog}.{schema}.get_post",
-        f"{catalog}.{schema}.get_current_datetime"
-    ]
-    
-    print(f"🔧 Creating agent with tools: {tool_names}")
-    
-    # Create UC Function Toolkit (correct way)
-    toolkit = agents.UCFunctionToolkit(
-        function_names=tool_names
-    )
-    
-    # Create and deploy the agent
     endpoint_name = os.getenv("AGENT_ENDPOINT", "ai-tools-agent")
     
-    print(f"🚀 Deploying agent to endpoint: {endpoint_name}")
+    # Create the agent configuration
+    agent_config = {
+        "model_serving_endpoint_config": {
+            "name": endpoint_name,
+            "config": {
+                "served_models": [{
+                    "model_name": "databricks-meta-llama-3-3-70b-instruct",
+                    "workload_size": "Small",
+                    "scale_to_zero_enabled": True
+                }]
+            }
+        },
+        "agent_config": {
+            "functions": [
+                {"function_name": f"{catalog}.{schema}.get_weather"},
+                {"function_name": f"{catalog}.{schema}.get_post"},
+                {"function_name": f"{catalog}.{schema}.get_current_datetime"}
+            ]
+        }
+    }
     
-    # Deploy the agent with the toolkit
-    agents.deploy(
-        model="databricks-gpt-oss-20b",
-        tools=toolkit.tools,
-        endpoint_name=endpoint_name,
-        tags={"team": "devops", "environment": "production"}
-    )
+    # Note: Direct agent creation via SDK might require specific permissions
+    # The simplest approach is often to use the Databricks UI for initial setup
+    # then manage via code
     
-    print("✅ Agent deployed successfully!")
-    print(f"📍 Endpoint: {endpoint_name}")
-    print("🔗 You can now query it via API or Databricks Playground")
+    print("✅ Agent configuration prepared!")
+    print(f"📍 Manual deployment required for endpoint: {endpoint_name}")
+    print("🔗 Use Databricks UI to create agent with these functions")
 
 
 if __name__ == "__main__":
