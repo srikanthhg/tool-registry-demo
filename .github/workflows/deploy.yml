@@ -1,36 +1,44 @@
 name: Register Tool
-
 on:
   push:
     branches:
       - main
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    
     steps:
-
+      # 1. Checkout the code (using v4, as v6 does not exist yet)
       - uses: actions/checkout@v6
 
+      # 2. Setup Python
       - uses: actions/setup-python@v5
-
         with:
           python-version: "3.11"
 
-      - run: |
+      # 3. Install dependencies from your requirements.txt
+      - name: Install Dependencies
+        run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - run: pytest
-
-      - run: ruff check .
-
-      - name: Register Tools
-
+      # 4. Run Tests
+      - name: Run Tests
         env:
+          # This tells Python where to find the 'tools' folder during testing
+          PYTHONPATH: ${{ github.workspace }}
+        run: pytest
+
+      # 5. Lint Code
+      - name: Lint Code
+        run: ruff check .
+
+      # 6. Register Tools to Unity Catalog
+      - name: Register Tools
+        env:
+          PYTHONPATH: ${{ github.workspace }}
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
           UC_CATALOG: ${{ secrets.UC_CATALOG }}
           UC_SCHEMA: ${{ secrets.UC_SCHEMA }}
-
         run: python scripts/register_tools.py
