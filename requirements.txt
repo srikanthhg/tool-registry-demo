@@ -6,3 +6,6 @@ databricks-connect>=15.1.0
 unitycatalog-ai
 ruff
 pytz
+langchain
+databricks-langchain
+mlflow
