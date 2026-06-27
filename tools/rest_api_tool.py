@@ -1,7 +1,7 @@
 import requests
 
 
-def get_post(post_id: int):
+def get_post(post_id: int) -> dict:
     """
     Returns a sample REST API response.
     """
