@@ -46,11 +46,11 @@ jobs:
           UC_SCHEMA: ${{ secrets.UC_SCHEMA }}
         run: python scripts/register_tools.py
       
-      - name: Deploy AI Agent Endpoint
-        env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-          UC_CATALOG: ${{ secrets.UC_CATALOG }}
-          UC_SCHEMA: ${{ secrets.UC_SCHEMA }}
-          AGENT_ENDPOINT: "ai-tools-agent"
-        run: python scripts/deploy_agent.py
+      # - name: Deploy AI Agent Endpoint
+      #   env:
+      #     DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      #     DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      #     UC_CATALOG: ${{ secrets.UC_CATALOG }}
+      #     UC_SCHEMA: ${{ secrets.UC_SCHEMA }}
+      #     AGENT_ENDPOINT: "ai-tools-agent"
+      #   run: python scripts/deploy_agent.py
