@@ -55,37 +55,33 @@ def main():
     schema = os.getenv("UC_SCHEMA", "tools")
 
     tools_to_register = [
-        {"func": get_weather},
-        {"func": get_post},
-        {"func": get_current_datetime},
+        get_weather,
+        get_post,
+        get_current_datetime,
     ]
 
-    for tool_config in tools_to_register:
-        func = tool_config["func"]
-        full_name = f"{catalog}.{schema}.{func.__name__}"
-        
-        print(f"--- Processing {func.__name__} ---")
+    for tool in tools_to_register:
+        print(f"--- Registering {tool.__name__} ---")
         
         # Step 1: Try to drop the existing function first
-        try:
-            print(f"🗑️  Dropping existing function {full_name}...")
-            uc_client.delete_function(full_name)
-            print(f"✅ Dropped {full_name}")
-        except Exception as e:
-            print(f"ℹ️  Function {full_name} doesn't exist or already dropped: {e}")
+        # try:
+        #     print(f"🗑️  Dropping existing function {full_name}...")
+        #     uc_client.delete_function(full_name)
+        #     print(f"✅ Dropped {full_name}")
+        # except Exception as e:
+        #     print(f"ℹ️  Function {full_name} doesn't exist or already dropped: {e}")
         
         # Step 2: Create the function with dependencies
         try:
-            print(f"📦 Creating {func.__name__} ...")
             function_info = uc_client.create_python_function(
-                func=func,
+                func=tool,
                 catalog=catalog,
                 schema=schema,
                 replace=True
             )
             print(f"✅ Successfully registered: {function_info.full_name}\n")
         except Exception as e:
-            print(f"❌ Failed to register {func.__name__}: {e}\n")
+            print(f"❌ Failed to register {tool.__name__}: {e}\n")
             raise e
 
     print("🎉 All tools registered successfully with dependencies!")
