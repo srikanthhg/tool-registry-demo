@@ -6,9 +6,6 @@ from databricks.sdk import WorkspaceClient
 
 from databricks_langchain import ChatDatabricks, UCFunctionToolkit
 
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-
 
 def main():
     catalog = os.getenv("UC_CATALOG", "demo")
@@ -23,54 +20,53 @@ def main():
         f"{catalog}.{schema}.get_current_datetime"
     ]
 
-    print(f"🔧 Tools: {tool_names}")
+    print(f"🔧 Registering UC tools: {tool_names}")
 
-    # -------------------------
-    # 1. UC Tools
-    # -------------------------
+    # -------------------------------------------------------
+    # 1. UC Tools (Databricks-native tool binding)
+    # -------------------------------------------------------
     toolkit = UCFunctionToolkit(function_names=tool_names)
-    tools = toolkit.tools
 
-    # -------------------------
-    # 2. LLM (Databricks model)
-    # -------------------------
+    # -------------------------------------------------------
+    # 2. LLM (Databricks Foundation Model)
+    # -------------------------------------------------------
     llm = ChatDatabricks(model="databricks-gpt-oss-20b")
 
-    # -------------------------
-    # 3. Prompt (IMPORTANT FIX)
-    # -------------------------
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful assistant that can use tools when needed."),
-        ("human", "{input}"),
-        MessagesPlaceholder(variable_name="agent_scratchpad")
-    ])
+    # -------------------------------------------------------
+    # 3. Databricks Agent (NO LangChain, NO LangGraph)
+    # -------------------------------------------------------
+    from databricks.agents import Agent
 
-    # -------------------------
-    # 4. Agent
-    # -------------------------
-    agent = create_tool_calling_agent(llm, tools, prompt)
-    agent_executor = AgentExecutor(agent=agent, tools=tools)
+    agent = Agent(
+        name=model_name,
+        model=llm,
+        tools=toolkit.tools,
+        instructions=(
+            "You are a helpful assistant. "
+            "Use available tools when needed to answer user questions."
+        )
+    )
 
-    # -------------------------
-    # 5. MLflow logging
-    # -------------------------
+    # -------------------------------------------------------
+    # 4. MLflow logging (Databricks Agents flavor)
+    # -------------------------------------------------------
     mlflow.set_registry_uri("databricks-uc")
 
-    print("📦 Logging agent to MLflow...")
+    print("📦 Logging Databricks Agent to MLflow...")
 
     with mlflow.start_run():
-        result = mlflow.langchain.log_model(
-            lc_model=agent_executor,
+        result = mlflow.pyfunc.log_model(
             artifact_path="agent",
+            python_model=agent,
             registered_model_name=model_name
         )
 
     version = result.registered_model_version
     print(f"✅ Registered model: {model_name} v{version}")
 
-    # -------------------------
-    # 6. Deploy to serving endpoint
-    # -------------------------
+    # -------------------------------------------------------
+    # 5. Deploy to Serving Endpoint
+    # -------------------------------------------------------
     client = WorkspaceClient()
 
     print(f"🚀 Deploying endpoint: {endpoint_name}")
@@ -90,7 +86,7 @@ def main():
     )
 
     print("🎉 Deployment complete!")
-    print(f"👉 Open Databricks Playground → select endpoint: {endpoint_name}")
+    print(f"👉 Open Databricks Playground → select: {endpoint_name}")
 
 
 if __name__ == "__main__":
