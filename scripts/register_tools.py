@@ -62,29 +62,27 @@ def main():
 
     # List of tools to register
     tools_to_register = [
-        # get_weather,
-        # get_post,
-        # get_current_datetime
         {"func": get_weather, "deps": ["requests"]},
         {"func": get_post, "deps": ["requests"]},
         {"func": get_current_datetime, "deps": ["pytz"]},
     ]
 
     # Register each tool
-    for tool in tools_to_register:
-        tool = tool["func"]
-        deps = tool["deps"]
-        print(f"--- Registering {tool.__name__} with dependencies: {deps} ---")
+    for tool_config in tools_to_register:
+        func = tool_config["func"]
+        deps = tool_config["deps"]
+        print(f"--- Registering {func.__name__} with dependencies: {deps} ---")
         try:
             function_info = uc_client.create_python_function(
-                func=tool,
+                func=func,
                 catalog=catalog,
                 schema=schema,
-                replace=True
+                replace=True,
+                dependencies=deps
             )
             print(f"✅ Successfully registered: {function_info.full_name}\n")
         except Exception as e:
-            print(f"❌ Failed to register {tool.__name__}: {e}\n")
+            print(f"❌ Failed to register {func.__name__}: {e}\n")
             raise e
 
     print("🎉 All tools registered successfully!")
