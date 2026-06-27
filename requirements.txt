@@ -11,3 +11,5 @@ mlflow>=2.18.0
 langgraph==0.2.62
 langchain>=0.3.0
 langchain-core>=0.3.0
+mlflow[databricks]
+mlflow-skinny[databricks]
