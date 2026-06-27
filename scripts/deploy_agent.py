@@ -3,7 +3,12 @@
 import os
 import mlflow
 from databricks.sdk import WorkspaceClient
+
 from databricks_langchain import ChatDatabricks, UCFunctionToolkit
+
+from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+
 
 def main():
     catalog = os.getenv("UC_CATALOG", "demo")
@@ -18,28 +23,40 @@ def main():
         f"{catalog}.{schema}.get_current_datetime"
     ]
 
-    print("🔧 Tools:", tool_names)
+    print(f"🔧 Tools: {tool_names}")
 
+    # -------------------------
+    # 1. UC Tools
+    # -------------------------
     toolkit = UCFunctionToolkit(function_names=tool_names)
     tools = toolkit.tools
 
+    # -------------------------
+    # 2. LLM (Databricks model)
+    # -------------------------
     llm = ChatDatabricks(model="databricks-gpt-oss-20b")
 
-    # IMPORTANT: NO LangGraph, NO pyfunc wrapper
-    from langchain.agents import AgentExecutor, create_tool_calling_agent
-    from langchain_core.prompts import ChatPromptTemplate
-
+    # -------------------------
+    # 3. Prompt (IMPORTANT FIX)
+    # -------------------------
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful assistant."),
-        ("human", "{input}")
+        ("system", "You are a helpful assistant that can use tools when needed."),
+        ("human", "{input}"),
+        MessagesPlaceholder(variable_name="agent_scratchpad")
     ])
 
+    # -------------------------
+    # 4. Agent
+    # -------------------------
     agent = create_tool_calling_agent(llm, tools, prompt)
     agent_executor = AgentExecutor(agent=agent, tools=tools)
 
+    # -------------------------
+    # 5. MLflow logging
+    # -------------------------
     mlflow.set_registry_uri("databricks-uc")
 
-    print("📦 Logging model...")
+    print("📦 Logging agent to MLflow...")
 
     with mlflow.start_run():
         result = mlflow.langchain.log_model(
@@ -49,8 +66,14 @@ def main():
         )
 
     version = result.registered_model_version
+    print(f"✅ Registered model: {model_name} v{version}")
 
+    # -------------------------
+    # 6. Deploy to serving endpoint
+    # -------------------------
     client = WorkspaceClient()
+
+    print(f"🚀 Deploying endpoint: {endpoint_name}")
 
     client.serving_endpoints.create_or_update(
         name=endpoint_name,
@@ -66,7 +89,9 @@ def main():
         }
     )
 
-    print("✅ Ready for Playground:", endpoint_name)
+    print("🎉 Deployment complete!")
+    print(f"👉 Open Databricks Playground → select endpoint: {endpoint_name}")
+
 
 if __name__ == "__main__":
     main()
