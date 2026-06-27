@@ -1,19 +1,17 @@
-# databricks-gpt-oss-20b
-
 import os
 import mlflow
 from databricks.sdk import WorkspaceClient
-from mlflow.models import infer_signature
-from databricks.sdk.service.serving import (
-    ServedModelInput,
-    EndpointCoreConfigInput
-)
+from databricks.sdk.service.serving import ServedModelInput, EndpointCoreConfigInput
+
+# LangChain imports for the real agent
+from langchain.agents import create_tool_calling_agent, AgentExecutor
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from databricks_langchain import ChatDatabricks, UCFunctionToolkit
 
 def main():
     catalog = os.getenv("UC_CATALOG", "demo")
     schema = os.getenv("UC_SCHEMA", "tools")
     endpoint_name = os.getenv("AGENT_ENDPOINT", "ai-tools-agent")
-
     model_name = f"{catalog}.{schema}.tools_agent"
 
     tool_names = [
@@ -25,56 +23,46 @@ def main():
     print(f"🔧 UC Tools: {tool_names}")
 
     # ----------------------------
-    # MLflow Model (simple PyFunc)
+    # 1. Build the REAL Agent
     # ----------------------------
-    class DatabricksAgent(mlflow.pyfunc.PythonModel):
-        def predict(self, context, model_input: dict) -> dict:
-            user_input = model_input.get("input", "")
-
-            try:
-                user_input = user_input.iloc[0]
-            except Exception:
-                pass
-
-            user_input = str(user_input)
-            return {
-                "response": f"You asked: {user_input}",
-                "tools_available": tool_names
-            }
+    print(" Building real LLM agent...")
+    toolkit = UCFunctionToolkit(function_names=tool_names)
+    tools = toolkit.tools
+    
+    # Use Llama 3 as the brain
+    llm = ChatDatabricks(model="databricks-meta-llama-3-3-70b-instruct")
+    
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", "You are a helpful assistant with access to real-time tools. Use them when needed."),
+        ("human", "{input}"),
+        MessagesPlaceholder(variable_name="agent_scratchpad"),
+    ])
+    
+    # Create the agent that can actually call the tools
+    agent = create_tool_calling_agent(llm, tools, prompt)
+    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=False)
 
     # ----------------------------
-    # MLflow Signature (REQUIRED)
+    # 2. Log to MLflow
     # ----------------------------
-    input_example = {"input": "What is the weather in Bangalore?"}
-
-    output_example = {
-        "response": "sample response",
-        "tools_available": tool_names
-    }
-
-    signature = infer_signature(input_example, output_example)
-
     mlflow.set_registry_uri("databricks-uc")
-
-    print("📦 Logging MLflow model...")
+    print("📦 Logging real agent to MLflow...")
 
     with mlflow.start_run():
-        result = mlflow.pyfunc.log_model(
+        result = mlflow.langchain.log_model(
+            lc_model=agent_executor,
             artifact_path="agent",
-            python_model=DatabricksAgent(),
             registered_model_name=model_name,
-            input_example=input_example,
-            signature=signature
+            input_example={"input": "What is the weather in Bangalore?"}
         )
 
     version = result.registered_model_version
-    print(f"✅ Registered model: {model_name} v{version}")
+    print(f"✅ Registered real agent: {model_name} v{version}")
 
     # ----------------------------
-    # Serving Endpoint (FIXED API)
+    # 3. Deploy to Serving Endpoint
     # ----------------------------
     client = WorkspaceClient()
-
     print(f"🚀 Deploying endpoint: {endpoint_name}")
 
     served_model = ServedModelInput(
@@ -104,9 +92,8 @@ def main():
             config=config
         )
 
-    print("🎉 DONE")
-    print(f"👉 Open Databricks Playground → {endpoint_name}")
-
+    print("🎉 DONE. Your agent will now actually call the tools!")
+    print(f"👉 Open Databricks Playground → Select '{endpoint_name}' from the Model Serving Endpoints dropdown.")
 
 if __name__ == "__main__":
     main()
