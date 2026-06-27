@@ -1,5 +1,4 @@
-from datetime import datetime
-import pytz
+
 
 def get_current_datetime(timezone: str) -> str:
     """
@@ -12,7 +11,9 @@ def get_current_datetime(timezone: str) -> str:
     Returns:
         str: Current date and time in ISO 8601 format with timezone info.
     """
-
+    from datetime import datetime
+    import pytz
+    
     try:
         tz = pytz.timezone(timezone)
         current_time = datetime.now(tz)

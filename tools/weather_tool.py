@@ -1,11 +1,11 @@
-import requests
-import json
+
 
 def get_weather(city: str) -> str:
     """
     Returns weather information from wttr.in
     """
-
+    import requests
+    import json
 
     url = f"https://wttr.in/{city}?format=j1"
 
