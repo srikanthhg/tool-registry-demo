@@ -1,5 +1,6 @@
 name: Register Tool
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
